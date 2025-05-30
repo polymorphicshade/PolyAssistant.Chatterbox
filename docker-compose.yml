@@ -1,0 +1,14 @@
+services:
+  chatterbox:
+    container_name: "chatterbox"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    network_mode: "host"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+    user: 0:0
+    ports:
+        - 7860:7860 # web ui
+        - 7861:7861 # api
