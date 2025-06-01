@@ -13,6 +13,7 @@ app = Flask(__name__)
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
+model = ChatterboxTTS.from_pretrained(DEVICE)
 
 def set_seed(seed: int):
     torch.manual_seed(seed)
@@ -21,15 +22,8 @@ def set_seed(seed: int):
     random.seed(seed)
     np.random.seed(seed)
 
-
-def load_model():
-    model = ChatterboxTTS.from_pretrained(DEVICE)
-    return model
-
-
-def generate(model, text, audio_prompt_path, exaggeration, temperature, seed_num, cfgw):
+def generate(text, audio_prompt_path, exaggeration, temperature, seed_num, cfgw):
     sr, wav = generate_raw(
-        model, 
         text, 
         audio_prompt_path, 
         exaggeration, 
@@ -39,10 +33,7 @@ def generate(model, text, audio_prompt_path, exaggeration, temperature, seed_num
     )
     return (sr, wav)
 
-def generate_raw(model, text, audio_prompt_path, exaggeration, temperature, seed_num, cfgw):
-    if model is None:
-        model = ChatterboxTTS.from_pretrained(DEVICE)
-
+def generate_raw(text, audio_prompt_path, exaggeration, temperature, seed_num, cfgw):
     if seed_num != 0:
         set_seed(int(seed_num))
 
@@ -74,7 +65,6 @@ def api_generate():
 
         # Call generate_raw to get both sample rate and numpy array
         sr, wav_numpy_array = generate_raw(
-            None, # Pass None so generate_raw loads the model if not already loaded
             text,
             voice_file_path,
             exaggeration,
@@ -104,8 +94,6 @@ def api_generate():
         }), 500
 
 with gr.Blocks() as demo:
-    model_state = gr.State(None)  # Loaded once per session/user
-
     with gr.Row():
         with gr.Column():
             text = gr.Textbox(
@@ -126,12 +114,9 @@ with gr.Blocks() as demo:
         with gr.Column():
             audio_output = gr.Audio(label="Output Audio")
 
-    demo.load(fn=load_model, inputs=[], outputs=model_state)
-
     run_btn.click(
         fn=generate,
         inputs=[
-            model_state,
             text,
             ref_wav,
             exaggeration,
